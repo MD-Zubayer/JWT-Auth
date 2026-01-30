@@ -41,9 +41,12 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt',
     'rest_framework_simplejwt.token_blacklist',
     'users',
+    'corsheaders',
+    
 ]
 
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -134,3 +137,29 @@ SIMPLE_JWT = {
     'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
     'AUTH_HEADER_TYPES': ('Bearer',),
 }
+
+CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:3000",  # Next.js dev
+    "http://127.0.0.1:3000",
+    "http://localhost:3001",  # Next.js dev
+    "http://127.0.0.1:3001",
+]
+
+
+# EMAIL_BACKEND = 'django_mailjet.backends.MailjetBackend'
+
+# MAILJET_API_KEY = 'd7fa03c2b6d8be8314e85dfce82f2cb7'
+# MAILJET_SECRET_KEY = '3d9fdd7b0ff557a559a915f7d5b393ee'
+
+
+
+EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+EMAIL_HOST = "smtp.gmail.com"
+EMAIL_USE_TLS = True
+EMAIL_PORT = 587
+
+EMAIL_HOST_USER = "newsmartagentbd@gmail.com"
+EMAIL_HOST_PASSWORD = "wbzh nmlh ndtt lxja"
+DEFAULT_FROM_EMAIL = EMAIL_HOST_USER

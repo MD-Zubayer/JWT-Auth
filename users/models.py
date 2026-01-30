@@ -9,6 +9,7 @@ class User(AbstractUser):
     USERNAME_FIELD = 'email'
     username = None
     password = models.CharField(max_length=128)
+    is_verified = models.BooleanField(default=False)
     REQUIRED_FIELDS = []
 
     objects = UserManager()

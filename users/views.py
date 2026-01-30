@@ -9,6 +9,12 @@ from .serializers import UserSerializer
 from rest_framework import status
 from django.contrib.auth import authenticate
 from rest_framework.views import APIView
+from datetime import datetime, timedelta, timezone
+import jwt
+from django.conf import settings
+
+from users.services.email_service import send_reset_email
+
 # Create your views here.
 
 
@@ -33,7 +39,7 @@ class UserViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
         
 
-    @action(detail=False, methods=['post'], url_path='create_user' )
+    @action(detail=False, methods=['post'], url_path='create_user', permission_classes=[AllowAny] )
     def create_user(self, request):
         serializer = self.get_serializer(data=request.data)
         if serializer.is_valid():
@@ -89,7 +95,7 @@ class LogoutView(APIView):
             refresh_token = request.data['refresh']
             token = RefreshToken(refresh_token)
             token.blacklist()
-            return Response({"message": "Successfully logged out",
+            return Response({"message": "Successfully logged out"
             
             }, status=status.HTTP_205_RESET_CONTENT)
         
@@ -99,3 +105,77 @@ class LogoutView(APIView):
 
 
 
+class ForgotPasswordView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        email = request.data.get('email')
+
+        if not email:
+            return Response(
+                {"error": 'Email is required'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        try:
+            user = User.objects.get(email=email)
+        except User.DoesNotExist:
+
+            # security best practice
+
+            return Response(
+                {'message': 'If email exists, reset link sent'}, 
+                status=status.HTTP_200_OK
+            )
+
+        #  JWT reset token
+        payload = {
+            'user_id': user.id, 
+            'type': 'password_reset', 
+            'exp': datetime.now() + timedelta(minutes=15),
+        }
+
+        token = jwt.encode(payload, settings.SECRET_KEY, algorithm="HS256")
+        if isinstance(token, bytes):
+            token = token.decode("utf-8")
+
+        reset_link = f"http://localhost:3001/reset-password?token={token}"
+
+        # send email
+        send_reset_email(user.email, reset_link)
+
+        return Response(
+           { "message": 'if email exists, reset link sent'},
+           status=status.HTTP_200_OK
+        )
+
+
+class ResetPasswordView(APIView):
+    permission_classes = [AllowAny]
+
+
+    def post(self, request):
+        token = request.data.get('token')
+        new_password = request.data.get('new_password')
+
+        if not token or not new_password:
+            return Response({"error": "Token and password are required"}, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            payload = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
+
+        except jwt.ExpiredSignatureError:
+            return Response({"error": "Token expired"}, status=400)
+        except jwt.InvalidTokenError:
+            return Response({'error': 'Invalid token'}, status=400)
+        
+        try:
+            user = User.objects.get(id=payload['user_id'])
+        
+        except User.DoesNotExist:
+            return Response({'error': "User not found"}, status=404)
+
+        user.set_password(new_password)
+        user.save()
+
+        return Response({'message': "password reset successfully"}, status=200)

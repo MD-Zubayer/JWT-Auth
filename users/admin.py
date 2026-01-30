@@ -6,6 +6,6 @@ from .models import User
 
 @admin.register(User)
 class UserAdmin(admin.ModelAdmin):
-    list_display = ('id', 'email', 'is_staff', 'is_active','is_superuser')
+    list_display = ('id', 'email', 'is_staff', 'is_active','is_superuser', 'is_verified')
     search_fields = ('email',)
     ordering = ('id',)
